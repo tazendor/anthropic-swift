@@ -3,9 +3,7 @@
 
 ---
 
-> **MANDATORY:** Read `~/Develop/Swift/GOVERNANCE.md` and
-> `~/Develop/Swift/CODEGUARD.md` before writing any code.
-> Confirm you have read both at the start of your response.
+> **MANDATORY:** Read `~/Develop/Swift/GOVERNANCE.md` before writing any code.
 
 ---
 
@@ -18,9 +16,9 @@ workspace roadmap, consumed by AIProviderKit (Phase 2) and NotifyAI (Phase 3).
 
 ## Current Phase
 
-**Phase 1F — Polish + CI**
+**v0.1.0 — Complete**
 
-Active work: Doc comments, README, ARCHITECTURE.md, CI workflow, linting, git init
+All phases (1A–1F) done. 44 tests, 73% coverage.
 
 Blocked on: nothing
 
@@ -50,11 +48,10 @@ Blocked on: nothing
 ## Do Not Touch
 
 - ~/Develop/Swift/GOVERNANCE.md (workspace-level)
-- ~/Develop/Swift/CODEGUARD.md (workspace-level)
 
 ## Session Goal
 
-Complete Phase 1F: polish, documentation, CI, and publish readiness.
+Package is complete. Next work: publish to GitHub, or proceed to Phase 2 (AIProviderKit) on instruction.
 
 ---
 
