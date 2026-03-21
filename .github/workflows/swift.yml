@@ -11,7 +11,11 @@ jobs:
         run: swift build -c release
       - name: Test
         run: swift test --enable-code-coverage
+      - name: Install SwiftLint
+        run: brew install swiftlint
       - name: SwiftLint
         run: swiftlint --strict
+      - name: Install SwiftFormat
+        run: brew install swiftformat
       - name: SwiftFormat check
         run: swiftformat --lint .
