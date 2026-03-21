@@ -81,11 +81,11 @@ type, which would weaken the type safety of non-streaming responses.
 
 ### 7. Certificate pinning deferred
 
-**Context:** CODEGUARD.md requires certificate pinning for AI provider API
-calls.
+**Context:** Certificate pinning for AI provider API calls is a security best
+practice.
 
-**Decision:** Deferred to a hardening phase. Document as a tracked GitHub issue
-when the repo is published.
+**Decision:** Deferred to a hardening phase. Track as a GitHub issue when the
+repo is published.
 
 **Rationale:** Pinning doesn't affect API design. Getting it wrong causes
 mysterious connection failures on cert rotation. Better to implement as a
@@ -93,7 +93,7 @@ focused security task with proper testing after core functionality works.
 
 ## Dependencies
 
-None. This is a zero-dependency package per GOVERNANCE.md policy.
+None. This is a zero-dependency package by design.
 
 ## Known Limitations
 

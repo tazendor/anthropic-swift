@@ -3,8 +3,8 @@ import Foundation
 /// Configuration for the Anthropic API client.
 ///
 /// The API key is accepted at init time and held in memory only.
-/// Per CODEGUARD, the caller is responsible for retrieving it from
-/// Keychain. This library never persists or logs API keys.
+/// The caller is responsible for secure storage (e.g. Keychain).
+/// This library never persists or logs API keys.
 public struct AnthropicConfiguration: Sendable {
     /// The API key for authentication.
     public let apiKey: String
