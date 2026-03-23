@@ -1,4 +1,4 @@
-@testable import AnthropicKit
+@testable import TazendorAnthropic
 import Foundation
 import Testing
 

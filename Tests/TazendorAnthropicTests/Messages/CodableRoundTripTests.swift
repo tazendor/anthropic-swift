@@ -1,5 +1,6 @@
-@testable import AnthropicKit
+@testable import TazendorAnthropic
 import Foundation
+import TazendorAI
 import Testing
 
 /// Tests that all Codable model types survive encode→decode round-trips

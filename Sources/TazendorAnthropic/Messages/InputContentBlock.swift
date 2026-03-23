@@ -1,4 +1,5 @@
 import Foundation
+import TazendorAI
 
 /// A content block in a user or assistant input message.
 ///

@@ -1,5 +1,6 @@
-@testable import AnthropicKit
+@testable import TazendorAnthropic
 import Foundation
+import TazendorAI
 import Testing
 
 /// Tests for tool definition encoding and tool use round-trips.
