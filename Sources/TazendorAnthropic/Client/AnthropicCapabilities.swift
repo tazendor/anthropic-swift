@@ -1,6 +1,6 @@
 import TazendorAI
 
-extension AICapability {
+public extension AICapability {
     /// Extended thinking (chain-of-thought reasoning).
-    public static let thinking = AICapability(rawValue: "thinking")
+    static let thinking = AICapability(rawValue: "thinking")
 }

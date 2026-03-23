@@ -1,5 +1,5 @@
-@testable import TazendorAnthropic
 import Foundation
+@testable import TazendorAnthropic
 import Testing
 
 /// Tests for AnthropicConfiguration defaults and custom values.

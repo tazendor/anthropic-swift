@@ -45,7 +45,7 @@ public struct AnthropicAIProvider: AIClient {
     // MARK: - AIClient
 
     public func sendMessage(
-        _ request: AIRequest
+        _ request: AIRequest,
     ) async throws(AIError) -> AIResponse {
         let messageRequest = mapRequest(request)
         do {
@@ -57,7 +57,7 @@ public struct AnthropicAIProvider: AIClient {
     }
 
     public func streamMessage(
-        _ request: AIRequest
+        _ request: AIRequest,
     ) async throws(AIError) -> AsyncThrowingStream<AIStreamEvent, Error> {
         let messageRequest = mapRequest(request, stream: true)
         let stream: AsyncThrowingStream<StreamEvent, Error>
@@ -75,7 +75,7 @@ public struct AnthropicAIProvider: AIClient {
                         handleStreamEvent(
                             event,
                             state: &state,
-                            continuation: continuation
+                            continuation: continuation,
                         )
                     }
                     continuation.finish()
@@ -93,7 +93,7 @@ public struct AnthropicAIProvider: AIClient {
     public func listModels() async throws(AIError) -> [AIModelInfo] {
         do {
             let response = try await client.listModels(
-                ModelListRequest()
+                ModelListRequest(),
             )
             return response.data.map(mapModelInfo)
         } catch {
@@ -120,7 +120,7 @@ extension AnthropicAIProvider {
     private func handleStreamEvent(
         _ event: StreamEvent,
         state: inout StreamState,
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation,
     ) {
         switch event {
         case let .messageStart(response):
@@ -148,7 +148,7 @@ extension AnthropicAIProvider {
                 model: state.model,
                 content: state.content,
                 stopReason: state.stopReason,
-                usage: state.usage
+                usage: state.usage,
             )
             continuation.yield(.done(response))
 
@@ -160,7 +160,7 @@ extension AnthropicAIProvider {
     private func handleBlockStart(
         _ block: ContentBlock,
         state: inout StreamState,
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation,
     ) {
         switch block {
         case let .text(textBlock):
@@ -169,8 +169,8 @@ extension AnthropicAIProvider {
             state.currentToolId = toolBlock.id
             state.content.append(
                 .toolCall(
-                    AIToolCall(id: toolBlock.id, name: toolBlock.name, arguments: toolBlock.input)
-                )
+                    AIToolCall(id: toolBlock.id, name: toolBlock.name, arguments: toolBlock.input),
+                ),
             )
             continuation.yield(.toolCallStart(id: toolBlock.id, name: toolBlock.name))
         case .thinking, .redactedThinking:
@@ -181,7 +181,7 @@ extension AnthropicAIProvider {
     private func handleDelta(
         _ delta: Delta,
         state: inout StreamState,
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation,
     ) {
         switch delta {
         case let .textDelta(text):
@@ -202,7 +202,7 @@ extension AnthropicAIProvider {
 extension AnthropicAIProvider {
     private func mapRequest(
         _ request: AIRequest,
-        stream: Bool = false
+        stream: Bool = false,
     ) -> MessageRequest {
         let messages = request.messages.map(mapMessage)
 
@@ -239,7 +239,7 @@ extension AnthropicAIProvider {
             tools: request.tools,
             toolChoice: request.toolChoice,
             thinking: thinking,
-            metadata: metadata
+            metadata: metadata,
         )
     }
 
@@ -258,7 +258,7 @@ extension AnthropicAIProvider {
     }
 
     private func mapContentPart(
-        _ part: AIContentPart
+        _ part: AIContentPart,
     ) -> InputContentBlock {
         switch part {
         case let .text(text):
@@ -277,7 +277,7 @@ extension AnthropicAIProvider {
             .toolResult(
                 toolUseId: result.toolCallId,
                 content: result.content,
-                isError: result.isError
+                isError: result.isError,
             )
         }
     }
@@ -287,7 +287,7 @@ extension AnthropicAIProvider {
 
 extension AnthropicAIProvider {
     private func mapResponse(
-        _ response: MessageResponse
+        _ response: MessageResponse,
     ) -> AIResponse {
         let content = response.content.compactMap(mapContentBlock)
         return AIResponse(
@@ -298,14 +298,14 @@ extension AnthropicAIProvider {
             usage: response.usage.map {
                 AIUsage(
                     inputTokens: $0.inputTokens,
-                    outputTokens: $0.outputTokens
+                    outputTokens: $0.outputTokens,
                 )
-            }
+            },
         )
     }
 
     private func mapContentBlock(
-        _ block: ContentBlock
+        _ block: ContentBlock,
     ) -> AIContentPart? {
         switch block {
         case let .text(textBlock):
@@ -315,8 +315,8 @@ extension AnthropicAIProvider {
                 AIToolCall(
                     id: toolBlock.id,
                     name: toolBlock.name,
-                    arguments: toolBlock.input
-                )
+                    arguments: toolBlock.input,
+                ),
             )
         case .thinking, .redactedThinking:
             nil
@@ -357,14 +357,14 @@ extension AnthropicAIProvider {
             provider: "anthropic",
             capabilities: capabilities,
             contextWindow: model.maxInputTokens,
-            maxOutputTokens: model.maxTokens
+            maxOutputTokens: model.maxTokens,
         )
     }
 
     /// Updates the last text content part by appending a delta.
     private func updateLastText(
         _ content: inout [AIContentPart],
-        appending delta: String
+        appending delta: String,
     ) {
         guard let lastIndex = content.indices.last,
               case let .text(existing) = content[lastIndex]
@@ -381,7 +381,7 @@ extension AnthropicAIProvider {
         case let .apiError(statusCode, response):
             .apiError(
                 statusCode: statusCode,
-                message: response.error.message
+                message: response.error.message,
             )
         case let .networkError(underlying):
             .networkError(underlying: underlying)

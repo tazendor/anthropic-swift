@@ -17,7 +17,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/tazendor/ai-swift.git",
-            from: "0.1.0"
+            from: "0.1.0",
         ),
     ],
     targets: [
@@ -25,14 +25,14 @@ let package = Package(
             name: "TazendorAnthropic",
             dependencies: [
                 .product(name: "TazendorAI", package: "ai-swift"),
-            ]
+            ],
         ),
         .testTarget(
             name: "TazendorAnthropicTests",
             dependencies: ["TazendorAnthropic"],
             resources: [
                 .copy("Fixtures"),
-            ]
+            ],
         ),
-    ]
+    ],
 )

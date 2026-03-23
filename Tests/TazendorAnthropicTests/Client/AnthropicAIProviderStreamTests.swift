@@ -1,9 +1,8 @@
-@testable import TazendorAnthropic
 import Foundation
 import TazendorAI
+@testable import TazendorAnthropic
 import Testing
 
-@Suite
 struct AnthropicAIProviderStreamTests {
     private let mockClient = MockAnthropicClient()
 
@@ -14,12 +13,14 @@ struct AnthropicAIProviderStreamTests {
     // MARK: - streamMessage
 
     @Test
-    func test_streamMessage_textDeltas_yieldsTextEvents() async throws {
+    func streamMessage_textDeltas_yieldsTextEvents() async throws {
         mockClient.streamEvents = makeTextStreamEvents()
 
         let stream = try await provider.streamMessage(makeSimpleRequest())
         var events: [AIStreamEvent] = []
-        for try await event in stream { events.append(event) }
+        for try await event in stream {
+            events.append(event)
+        }
 
         #expect(events.count == 3)
         if case let .textDelta(text) = events[0] { #expect(text == "Hello") }
@@ -33,12 +34,14 @@ struct AnthropicAIProviderStreamTests {
     }
 
     @Test
-    func test_streamMessage_toolUse_yieldsToolCallEvents() async throws {
+    func streamMessage_toolUse_yieldsToolCallEvents() async throws {
         mockClient.streamEvents = makeToolStreamEvents()
 
         let stream = try await provider.streamMessage(makeSimpleRequest())
         var events: [AIStreamEvent] = []
-        for try await event in stream { events.append(event) }
+        for try await event in stream {
+            events.append(event)
+        }
 
         #expect(events.count == 4)
         if case let .toolCallStart(id, name) = events[0] {
@@ -54,7 +57,7 @@ struct AnthropicAIProviderStreamTests {
     // MARK: - listModels
 
     @Test
-    func test_listModels_mapsModelInfoCorrectly() async throws {
+    func listModels_mapsModelInfoCorrectly() async throws {
         mockClient.listResult = .success(makeModelListResponse())
 
         let models = try await provider.listModels()
@@ -78,7 +81,7 @@ struct AnthropicAIProviderStreamTests {
         AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Hi")]
+            messages: [AIMessage(role: .user, text: "Hi")],
         )
     }
 
@@ -88,7 +91,7 @@ struct AnthropicAIProviderStreamTests {
             content: [],
             model: "claude-sonnet-4-6",
             stopReason: .endTurn,
-            usage: Usage(inputTokens: 10, outputTokens: 5)
+            usage: Usage(inputTokens: 10, outputTokens: 5),
         )
     }
 
@@ -102,8 +105,8 @@ struct AnthropicAIProviderStreamTests {
             .messageDelta(
                 MessageDeltaPayload(
                     delta: .init(stopReason: .endTurn, stopSequence: nil),
-                    usage: .init(outputTokens: 2)
-                )
+                    usage: .init(outputTokens: 2),
+                ),
             ),
             .messageStop,
         ]
@@ -115,8 +118,8 @@ struct AnthropicAIProviderStreamTests {
             .contentBlockStart(
                 index: 0,
                 contentBlock: .toolUse(
-                    ToolUseBlock(id: "tu_1", name: "get_weather", input: .object([:]))
-                )
+                    ToolUseBlock(id: "tu_1", name: "get_weather", input: .object([:])),
+                ),
             ),
             .contentBlockDelta(index: 0, delta: .inputJsonDelta(partialJson: "{\"city\":")),
             .contentBlockDelta(index: 0, delta: .inputJsonDelta(partialJson: "\"Paris\"}")),
@@ -124,8 +127,8 @@ struct AnthropicAIProviderStreamTests {
             .messageDelta(
                 MessageDeltaPayload(
                     delta: .init(stopReason: .toolUse, stopSequence: nil),
-                    usage: nil
-                )
+                    usage: nil,
+                ),
             ),
             .messageStop,
         ]
@@ -147,14 +150,14 @@ struct AnthropicAIProviderStreamTests {
                 pdfInput: nil,
                 structuredOutputs: CapabilitySupport(supported: true),
                 thinking: ThinkingCapability(supported: true, types: nil),
-                effort: nil
-            )
+                effort: nil,
+            ),
         )
         return ModelListResponse(
             data: [modelInfo],
             hasMore: false,
             firstId: modelInfo.id,
-            lastId: modelInfo.id
+            lastId: modelInfo.id,
         )
     }
 }

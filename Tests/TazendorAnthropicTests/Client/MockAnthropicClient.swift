@@ -1,6 +1,6 @@
-@testable import TazendorAnthropic
 import Foundation
 import TazendorAI
+@testable import TazendorAnthropic
 
 /// A mock ``AnthropicClient`` for testing the ``AnthropicAIProvider``
 /// mapping layer in isolation.
@@ -16,7 +16,7 @@ final class MockAnthropicClient: AnthropicClient, @unchecked Sendable {
 
     /// The response to return from ``sendMessage``.
     var sendResult: Result<MessageResponse, AnthropicError> = .failure(
-        .invalidRequest(reason: "no response configured")
+        .invalidRequest(reason: "no response configured"),
     )
 
     /// The stream to return from ``streamMessage``.
@@ -27,16 +27,16 @@ final class MockAnthropicClient: AnthropicClient, @unchecked Sendable {
 
     /// The response to return from ``listModels``.
     var listResult: Result<ModelListResponse, AnthropicError> = .failure(
-        .invalidRequest(reason: "no response configured")
+        .invalidRequest(reason: "no response configured"),
     )
 
     /// The response to return from ``retrieveModel``.
     var retrieveResult: Result<ModelInfo, AnthropicError> = .failure(
-        .invalidRequest(reason: "no response configured")
+        .invalidRequest(reason: "no response configured"),
     )
 
     func sendMessage(
-        _ request: MessageRequest
+        _ request: MessageRequest,
     ) async throws(AnthropicError) -> MessageResponse {
         lastSendRequest = request
         switch sendResult {
@@ -48,7 +48,7 @@ final class MockAnthropicClient: AnthropicClient, @unchecked Sendable {
     }
 
     func streamMessage(
-        _ request: MessageRequest
+        _ request: MessageRequest,
     ) async throws(AnthropicError) -> AsyncThrowingStream<StreamEvent, Error> {
         lastStreamRequest = request
         if let error = streamError {
@@ -64,7 +64,7 @@ final class MockAnthropicClient: AnthropicClient, @unchecked Sendable {
     }
 
     func listModels(
-        _ request: ModelListRequest
+        _ request: ModelListRequest,
     ) async throws(AnthropicError) -> ModelListResponse {
         lastListRequest = request
         switch listResult {
@@ -76,7 +76,7 @@ final class MockAnthropicClient: AnthropicClient, @unchecked Sendable {
     }
 
     func retrieveModel(
-        id: String
+        id _: String,
     ) async throws(AnthropicError) -> ModelInfo {
         switch retrieveResult {
         case let .success(model):

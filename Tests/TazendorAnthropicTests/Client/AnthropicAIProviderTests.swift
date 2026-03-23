@@ -1,9 +1,8 @@
-@testable import TazendorAnthropic
 import Foundation
 import TazendorAI
+@testable import TazendorAnthropic
 import Testing
 
-@Suite
 struct AnthropicAIProviderTests {
     private let mockClient = MockAnthropicClient()
 
@@ -14,12 +13,12 @@ struct AnthropicAIProviderTests {
     // MARK: - Provider Identity
 
     @Test
-    func test_providerID_returnsAnthropic() {
+    func providerID_returnsAnthropic() {
         #expect(provider.providerID == "anthropic")
     }
 
     @Test
-    func test_capabilities_includesExpectedSet() {
+    func capabilities_includesExpectedSet() {
         let caps = provider.capabilities
         #expect(caps.contains(.textGeneration))
         #expect(caps.contains(.streaming))
@@ -31,13 +30,13 @@ struct AnthropicAIProviderTests {
     // MARK: - sendMessage Request Mapping
 
     @Test
-    func test_sendMessage_simpleText_mapsRequestCorrectly() async throws {
+    func sendMessage_simpleText_mapsRequestCorrectly() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Hello")]
+            messages: [AIMessage(role: .user, text: "Hello")],
         )
 
         _ = try await provider.sendMessage(request)
@@ -50,14 +49,14 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_withSystemPrompt_mapsToSystem() async throws {
+    func sendMessage_withSystemPrompt_mapsToSystem() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
             messages: [AIMessage(role: .user, text: "Hi")],
-            systemPrompt: "You are helpful."
+            systemPrompt: "You are helpful.",
         )
 
         _ = try await provider.sendMessage(request)
@@ -67,7 +66,7 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_withTools_passesToolDefinitions() async throws {
+    func sendMessage_withTools_passesToolDefinitions() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let tool = ToolDefinition(
@@ -75,15 +74,15 @@ struct AnthropicAIProviderTests {
             description: "Get weather",
             inputSchema: ToolInputSchema(
                 properties: ["city": .object(["type": "string"])],
-                required: ["city"]
-            )
+                required: ["city"],
+            ),
         )
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
             messages: [AIMessage(role: .user, text: "Weather?")],
-            tools: [tool]
+            tools: [tool],
         )
 
         _ = try await provider.sendMessage(request)
@@ -94,14 +93,14 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_withThinkingOption_mapsToThinkingConfig() async throws {
+    func sendMessage_withThinkingOption_mapsToThinkingConfig() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 16384,
             messages: [AIMessage(role: .user, text: "Think")],
-            options: [.anthropicThinkingBudget: .number(10000)]
+            options: [.anthropicThinkingBudget: .number(10000)],
         )
 
         _ = try await provider.sendMessage(request)
@@ -111,7 +110,7 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_withProviderOptions_mapsCorrectly() async throws {
+    func sendMessage_withProviderOptions_mapsCorrectly() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
@@ -124,7 +123,7 @@ struct AnthropicAIProviderTests {
                 .anthropicTopP: .number(0.9),
                 .anthropicTopK: .number(40),
                 .anthropicUserId: .string("user-123"),
-            ]
+            ],
         )
 
         _ = try await provider.sendMessage(request)
@@ -140,13 +139,13 @@ struct AnthropicAIProviderTests {
     // MARK: - sendMessage Response Mapping
 
     @Test
-    func test_sendMessage_textResponse_mapsToAIResponse() async throws {
+    func sendMessage_textResponse_mapsToAIResponse() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Hi")]
+            messages: [AIMessage(role: .user, text: "Hi")],
         )
 
         let response = try await provider.sendMessage(request)
@@ -165,7 +164,7 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_toolUseResponse_mapsToToolCall() async throws {
+    func sendMessage_toolUseResponse_mapsToToolCall() async throws {
         let toolUseResponse = MessageResponse(
             id: "msg_456",
             content: [
@@ -173,20 +172,20 @@ struct AnthropicAIProviderTests {
                     ToolUseBlock(
                         id: "tu_1",
                         name: "get_weather",
-                        input: .object(["city": "Paris"])
-                    )
+                        input: .object(["city": "Paris"]),
+                    ),
                 ),
             ],
             model: "claude-sonnet-4-6",
             stopReason: .toolUse,
-            usage: Usage(inputTokens: 20, outputTokens: 15)
+            usage: Usage(inputTokens: 20, outputTokens: 15),
         )
         mockClient.sendResult = .success(toolUseResponse)
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Weather?")]
+            messages: [AIMessage(role: .user, text: "Weather?")],
         )
 
         let response = try await provider.sendMessage(request)
@@ -203,7 +202,7 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_allStopReasons_mapCorrectly() async throws {
+    func sendMessage_allStopReasons_mapCorrectly() async throws {
         let cases: [(StopReason, AIStopReason)] = [
             (.endTurn, .endTurn),
             (.maxTokens, .maxTokens),
@@ -216,14 +215,14 @@ struct AnthropicAIProviderTests {
                 id: "msg_1",
                 content: [.text(TextBlock(text: "ok"))],
                 model: "claude-sonnet-4-6",
-                stopReason: anthropicReason
+                stopReason: anthropicReason,
             )
             mockClient.sendResult = .success(response)
 
             let request = AIRequest(
                 model: "claude-sonnet-4-6",
                 maxTokens: 1024,
-                messages: [AIMessage(role: .user, text: "Hi")]
+                messages: [AIMessage(role: .user, text: "Hi")],
             )
 
             let aiResponse = try await provider.sendMessage(request)
@@ -232,7 +231,7 @@ struct AnthropicAIProviderTests {
     }
 
     @Test
-    func test_sendMessage_thinkingBlocks_areSkipped() async throws {
+    func sendMessage_thinkingBlocks_areSkipped() async throws {
         let response = MessageResponse(
             id: "msg_1",
             content: [
@@ -240,14 +239,14 @@ struct AnthropicAIProviderTests {
                 .text(TextBlock(text: "answer")),
             ],
             model: "claude-sonnet-4-6",
-            stopReason: .endTurn
+            stopReason: .endTurn,
         )
         mockClient.sendResult = .success(response)
 
         let request = AIRequest(
             model: "claude-sonnet-4-6",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Think")]
+            messages: [AIMessage(role: .user, text: "Think")],
         )
 
         let aiResponse = try await provider.sendMessage(request)
@@ -262,19 +261,19 @@ struct AnthropicAIProviderTests {
     // MARK: - sendMessage Error Mapping
 
     @Test
-    func test_sendMessage_apiError_mapsToAIError() async throws {
+    func sendMessage_apiError_mapsToAIError() async throws {
         let apiResponse = APIErrorResponse(
             type: "error",
-            error: .init(type: "invalid_request_error", message: "bad model")
+            error: .init(type: "invalid_request_error", message: "bad model"),
         )
         mockClient.sendResult = .failure(
-            .apiError(statusCode: 400, response: apiResponse)
+            .apiError(statusCode: 400, response: apiResponse),
         )
 
         let request = AIRequest(
             model: "bad-model",
             maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Hi")]
+            messages: [AIMessage(role: .user, text: "Hi")],
         )
 
         do {
@@ -293,7 +292,7 @@ struct AnthropicAIProviderTests {
     // MARK: - Content Part Mapping
 
     @Test
-    func test_sendMessage_toolResultMessage_mapsCorrectly() async throws {
+    func sendMessage_toolResultMessage_mapsCorrectly() async throws {
         mockClient.sendResult = .success(makeTextResponse())
 
         let request = AIRequest(
@@ -304,15 +303,15 @@ struct AnthropicAIProviderTests {
                 AIMessage(role: .assistant, content: [
                     .toolCall(AIToolCall(
                         id: "tu_1", name: "get_weather",
-                        arguments: .object(["city": "Paris"])
+                        arguments: .object(["city": "Paris"]),
                     )),
                 ]),
                 AIMessage(role: .user, content: [
                     .toolResult(AIToolResult(
-                        toolCallId: "tu_1", content: "72°F and sunny"
+                        toolCallId: "tu_1", content: "72°F and sunny",
                     )),
                 ]),
-            ]
+            ],
         )
 
         _ = try await provider.sendMessage(request)
@@ -338,7 +337,7 @@ struct AnthropicAIProviderTests {
             content: [.text(TextBlock(text: "Hello there!"))],
             model: "claude-sonnet-4-6",
             stopReason: .endTurn,
-            usage: Usage(inputTokens: 10, outputTokens: 5)
+            usage: Usage(inputTokens: 10, outputTokens: 5),
         )
     }
 }
