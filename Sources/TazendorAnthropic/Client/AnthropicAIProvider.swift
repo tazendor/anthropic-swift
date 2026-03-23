@@ -69,95 +69,14 @@ public struct AnthropicAIProvider: AIClient {
 
         return AsyncThrowingStream { continuation in
             let task = Task {
-                var accumulatedContent: [AIContentPart] = []
-                var responseId = ""
-                var responseModel = request.model
-                var currentToolId: String?
-                var finalStopReason: AIStopReason?
-                var finalUsage: AIUsage?
-
+                var state = StreamState(model: request.model)
                 do {
                     for try await event in stream {
-                        switch event {
-                        case let .messageStart(response):
-                            responseId = response.id
-                            responseModel = response.model
-
-                        case let .contentBlockStart(_, contentBlock):
-                            switch contentBlock {
-                            case let .text(block):
-                                accumulatedContent.append(.text(block.text))
-                            case let .toolUse(block):
-                                currentToolId = block.id
-                                accumulatedContent.append(
-                                    .toolCall(
-                                        AIToolCall(
-                                            id: block.id,
-                                            name: block.name,
-                                            arguments: block.input
-                                        )
-                                    )
-                                )
-                                continuation.yield(
-                                    .toolCallStart(
-                                        id: block.id,
-                                        name: block.name
-                                    )
-                                )
-                            case .thinking, .redactedThinking:
-                                break
-                            }
-
-                        case let .contentBlockDelta(_, delta):
-                            switch delta {
-                            case let .textDelta(text):
-                                updateLastText(
-                                    &accumulatedContent,
-                                    appending: text
-                                )
-                                continuation.yield(.textDelta(text))
-                            case let .inputJsonDelta(partialJson):
-                                if let toolId = currentToolId {
-                                    continuation.yield(
-                                        .toolCallDelta(
-                                            id: toolId,
-                                            argumentsFragment: partialJson
-                                        )
-                                    )
-                                }
-                            case .thinkingDelta, .signatureDelta:
-                                break
-                            }
-
-                        case .contentBlockStop:
-                            currentToolId = nil
-
-                        case let .messageDelta(payload):
-                            finalStopReason = payload.delta.stopReason
-                                .map(mapStopReason)
-                            if let deltaUsage = payload.usage {
-                                finalUsage = AIUsage(
-                                    inputTokens: 0,
-                                    outputTokens: deltaUsage.outputTokens
-                                )
-                            }
-
-                        case .messageStop:
-                            let response = AIResponse(
-                                id: responseId,
-                                model: responseModel,
-                                content: accumulatedContent,
-                                stopReason: finalStopReason,
-                                usage: finalUsage
-                            )
-                            continuation.yield(.done(response))
-
-                        case .ping:
-                            break
-
-                        case .error:
-                            break
-                        }
+                        handleStreamEvent(
+                            event,
+                            state: &state,
+                            continuation: continuation
+                        )
                     }
                     continuation.finish()
                 } catch {
@@ -179,6 +98,101 @@ public struct AnthropicAIProvider: AIClient {
             return response.data.map(mapModelInfo)
         } catch {
             throw mapError(error)
+        }
+    }
+}
+
+// MARK: - Stream Processing
+
+/// Mutable state accumulated while processing a stream.
+private struct StreamState {
+    var content: [AIContentPart] = []
+    var responseId = ""
+    var model: String
+    var currentToolId: String?
+    var stopReason: AIStopReason?
+    var usage: AIUsage?
+}
+
+extension AnthropicAIProvider {
+    /// Processes a single ``StreamEvent`` and yields the corresponding
+    /// ``AIStreamEvent``(s) to the continuation.
+    private func handleStreamEvent(
+        _ event: StreamEvent,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        switch event {
+        case let .messageStart(response):
+            state.responseId = response.id
+            state.model = response.model
+
+        case let .contentBlockStart(_, contentBlock):
+            handleBlockStart(contentBlock, state: &state, continuation: continuation)
+
+        case let .contentBlockDelta(_, delta):
+            handleDelta(delta, state: &state, continuation: continuation)
+
+        case .contentBlockStop:
+            state.currentToolId = nil
+
+        case let .messageDelta(payload):
+            state.stopReason = payload.delta.stopReason.map(mapStopReason)
+            if let deltaUsage = payload.usage {
+                state.usage = AIUsage(inputTokens: 0, outputTokens: deltaUsage.outputTokens)
+            }
+
+        case .messageStop:
+            let response = AIResponse(
+                id: state.responseId,
+                model: state.model,
+                content: state.content,
+                stopReason: state.stopReason,
+                usage: state.usage
+            )
+            continuation.yield(.done(response))
+
+        case .ping, .error:
+            break
+        }
+    }
+
+    private func handleBlockStart(
+        _ block: ContentBlock,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        switch block {
+        case let .text(textBlock):
+            state.content.append(.text(textBlock.text))
+        case let .toolUse(toolBlock):
+            state.currentToolId = toolBlock.id
+            state.content.append(
+                .toolCall(
+                    AIToolCall(id: toolBlock.id, name: toolBlock.name, arguments: toolBlock.input)
+                )
+            )
+            continuation.yield(.toolCallStart(id: toolBlock.id, name: toolBlock.name))
+        case .thinking, .redactedThinking:
+            break
+        }
+    }
+
+    private func handleDelta(
+        _ delta: Delta,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        switch delta {
+        case let .textDelta(text):
+            updateLastText(&state.content, appending: text)
+            continuation.yield(.textDelta(text))
+        case let .inputJsonDelta(partialJson):
+            if let toolId = state.currentToolId {
+                continuation.yield(.toolCallDelta(id: toolId, argumentsFragment: partialJson))
+            }
+        case .thinkingDelta, .signatureDelta:
+            break
         }
     }
 }

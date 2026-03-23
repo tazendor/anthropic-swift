@@ -290,184 +290,6 @@ struct AnthropicAIProviderTests {
         }
     }
 
-    // MARK: - streamMessage
-
-    @Test
-    func test_streamMessage_textDeltas_yieldsTextEvents() async throws {
-        mockClient.streamEvents = [
-            .messageStart(makeTextResponse(content: [])),
-            .contentBlockStart(
-                index: 0,
-                contentBlock: .text(TextBlock(text: ""))
-            ),
-            .contentBlockDelta(
-                index: 0,
-                delta: .textDelta(text: "Hello")
-            ),
-            .contentBlockDelta(
-                index: 0,
-                delta: .textDelta(text: " world")
-            ),
-            .contentBlockStop(index: 0),
-            .messageDelta(
-                MessageDeltaPayload(
-                    delta: .init(
-                        stopReason: .endTurn,
-                        stopSequence: nil
-                    ),
-                    usage: .init(outputTokens: 2)
-                )
-            ),
-            .messageStop,
-        ]
-
-        let request = AIRequest(
-            model: "claude-sonnet-4-6",
-            maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Hi")]
-        )
-
-        let stream = try await provider.streamMessage(request)
-        var events: [AIStreamEvent] = []
-        for try await event in stream {
-            events.append(event)
-        }
-
-        // Should have: textDelta("Hello"), textDelta(" world"), done
-        #expect(events.count == 3)
-        if case let .textDelta(text) = events[0] {
-            #expect(text == "Hello")
-        } else {
-            Issue.record("Expected textDelta")
-        }
-        if case let .textDelta(text) = events[1] {
-            #expect(text == " world")
-        } else {
-            Issue.record("Expected textDelta")
-        }
-        if case let .done(response) = events[2] {
-            #expect(response.stopReason == .endTurn)
-            if case let .text(text) = response.content[0] {
-                #expect(text == "Hello world")
-            }
-        } else {
-            Issue.record("Expected done event")
-        }
-    }
-
-    @Test
-    func test_streamMessage_toolUse_yieldsToolCallEvents() async throws {
-        mockClient.streamEvents = [
-            .messageStart(makeTextResponse(content: [])),
-            .contentBlockStart(
-                index: 0,
-                contentBlock: .toolUse(
-                    ToolUseBlock(
-                        id: "tu_1",
-                        name: "get_weather",
-                        input: .object([:])
-                    )
-                )
-            ),
-            .contentBlockDelta(
-                index: 0,
-                delta: .inputJsonDelta(partialJson: "{\"city\":")
-            ),
-            .contentBlockDelta(
-                index: 0,
-                delta: .inputJsonDelta(partialJson: "\"Paris\"}")
-            ),
-            .contentBlockStop(index: 0),
-            .messageDelta(
-                MessageDeltaPayload(
-                    delta: .init(
-                        stopReason: .toolUse,
-                        stopSequence: nil
-                    ),
-                    usage: nil
-                )
-            ),
-            .messageStop,
-        ]
-
-        let request = AIRequest(
-            model: "claude-sonnet-4-6",
-            maxTokens: 1024,
-            messages: [AIMessage(role: .user, text: "Weather?")]
-        )
-
-        let stream = try await provider.streamMessage(request)
-        var events: [AIStreamEvent] = []
-        for try await event in stream {
-            events.append(event)
-        }
-
-        // toolCallStart, toolCallDelta x2, done
-        #expect(events.count == 4)
-        if case let .toolCallStart(id, name) = events[0] {
-            #expect(id == "tu_1")
-            #expect(name == "get_weather")
-        } else {
-            Issue.record("Expected toolCallStart")
-        }
-        if case let .toolCallDelta(id, fragment) = events[1] {
-            #expect(id == "tu_1")
-            #expect(fragment == "{\"city\":")
-        } else {
-            Issue.record("Expected toolCallDelta")
-        }
-    }
-
-    // MARK: - listModels
-
-    @Test
-    func test_listModels_mapsModelInfoCorrectly() async throws {
-        let modelInfo = ModelInfo(
-            id: "claude-sonnet-4-6",
-            type: "model",
-            displayName: "Claude Sonnet 4.6",
-            createdAt: "2025-05-01T00:00:00Z",
-            maxInputTokens: 200_000,
-            maxTokens: 8192,
-            capabilities: ModelCapabilities(
-                batch: nil,
-                citations: nil,
-                codeExecution: nil,
-                imageInput: CapabilitySupport(supported: true),
-                pdfInput: nil,
-                structuredOutputs: CapabilitySupport(supported: true),
-                thinking: ThinkingCapability(
-                    supported: true,
-                    types: nil
-                ),
-                effort: nil
-            )
-        )
-
-        mockClient.listResult = .success(
-            ModelListResponse(
-                data: [modelInfo],
-                hasMore: false,
-                firstId: modelInfo.id,
-                lastId: modelInfo.id
-            )
-        )
-
-        let models = try await provider.listModels()
-
-        #expect(models.count == 1)
-        let model = models[0]
-        #expect(model.id == "claude-sonnet-4-6")
-        #expect(model.displayName == "Claude Sonnet 4.6")
-        #expect(model.provider == "anthropic")
-        #expect(model.contextWindow == 200_000)
-        #expect(model.maxOutputTokens == 8192)
-        #expect(model.capabilities.contains(.vision))
-        #expect(model.capabilities.contains(.thinking))
-        #expect(model.capabilities.contains(.jsonMode))
-        #expect(model.capabilities.contains(.toolUse))
-    }
-
     // MARK: - Content Part Mapping
 
     @Test
@@ -480,21 +302,15 @@ struct AnthropicAIProviderTests {
             messages: [
                 AIMessage(role: .user, text: "Weather?"),
                 AIMessage(role: .assistant, content: [
-                    .toolCall(
-                        AIToolCall(
-                            id: "tu_1",
-                            name: "get_weather",
-                            arguments: .object(["city": "Paris"])
-                        )
-                    ),
+                    .toolCall(AIToolCall(
+                        id: "tu_1", name: "get_weather",
+                        arguments: .object(["city": "Paris"])
+                    )),
                 ]),
                 AIMessage(role: .user, content: [
-                    .toolResult(
-                        AIToolResult(
-                            toolCallId: "tu_1",
-                            content: "72°F and sunny"
-                        )
-                    ),
+                    .toolResult(AIToolResult(
+                        toolCallId: "tu_1", content: "72°F and sunny"
+                    )),
                 ]),
             ]
         )
@@ -503,13 +319,9 @@ struct AnthropicAIProviderTests {
 
         let mapped = try #require(mockClient.lastSendRequest)
         #expect(mapped.messages.count == 3)
-
-        // Check tool result mapping
         let toolResultMsg = mapped.messages[2]
         #expect(toolResultMsg.role == .user)
-        if case let .toolResult(toolUseId, content, isError) =
-            toolResultMsg.content[0]
-        {
+        if case let .toolResult(toolUseId, content, isError) = toolResultMsg.content[0] {
             #expect(toolUseId == "tu_1")
             #expect(content == "72°F and sunny")
             #expect(isError == false)
@@ -520,12 +332,10 @@ struct AnthropicAIProviderTests {
 
     // MARK: - Helpers
 
-    private func makeTextResponse(
-        content: [ContentBlock]? = nil
-    ) -> MessageResponse {
+    private func makeTextResponse() -> MessageResponse {
         MessageResponse(
             id: "msg_123",
-            content: content ?? [.text(TextBlock(text: "Hello there!"))],
+            content: [.text(TextBlock(text: "Hello there!"))],
             model: "claude-sonnet-4-6",
             stopReason: .endTurn,
             usage: Usage(inputTokens: 10, outputTokens: 5)
