@@ -1,4 +1,5 @@
 import Foundation
+import TazendorAI
 
 /// Default implementation of `AnthropicClient` using `URLSession`.
 ///

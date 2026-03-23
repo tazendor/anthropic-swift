@@ -1,4 +1,5 @@
 import Foundation
+import TazendorAI
 
 /// Parses Server-Sent Events from a byte stream into typed `StreamEvent`s.
 ///
@@ -13,6 +14,10 @@ import Foundation
 /// JSON payload.
 enum SSEParser {
     /// Parses an async sequence of lines into stream events.
+    ///
+    /// Delegates raw SSE line parsing to ``SSELineParser`` from TazendorAI,
+    /// then deserializes each event's JSON payload into typed ``StreamEvent``s.
+    ///
     /// - Parameter lines: An `AsyncLineSequence` from `URLSession.bytes`.
     /// - Returns: An `AsyncThrowingStream` yielding parsed `StreamEvent`s.
     static func parse<S: AsyncSequence & Sendable>(
@@ -22,40 +27,19 @@ enum SSEParser {
     {
         AsyncThrowingStream { continuation in
             let task = Task {
-                var currentEvent: String?
-                var dataLines: [String] = []
-
                 do {
-                    for try await line in lines {
-                        if line.hasPrefix("event: ") {
-                            currentEvent = String(
-                                line.dropFirst("event: ".count),
-                            )
-                        } else if line.hasPrefix("data: ") {
-                            dataLines.append(
-                                String(line.dropFirst("data: ".count)),
-                            )
-                        } else if line.isEmpty {
-                            // Blank line = event boundary
-                            if let eventType = currentEvent,
-                               !dataLines.isEmpty
-                            {
-                                let jsonString = dataLines.joined(
-                                    separator: "\n",
-                                )
-                                let data = Data(jsonString.utf8)
-                                if let event = try parseEvent(
-                                    type: eventType,
-                                    data: data,
-                                ) {
-                                    continuation.yield(event)
-                                }
-                            }
-                            currentEvent = nil
-                            dataLines = []
+                    let rawEvents = SSELineParser.parse(lines: lines)
+                    for try await rawEvent in rawEvents {
+                        guard let eventType = rawEvent.event,
+                              !rawEvent.data.isEmpty
+                        else { continue }
+                        let data = Data(rawEvent.data.utf8)
+                        if let event = try parseEvent(
+                            type: eventType,
+                            data: data,
+                        ) {
+                            continuation.yield(event)
                         }
-                        // Ignore comment lines (starting with :)
-                        // and unknown prefixes
                     }
                     continuation.finish()
                 } catch {

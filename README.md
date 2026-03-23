@@ -1,6 +1,11 @@
-# AnthropicKit
+# TazendorAnthropic
 
-A zero-dependency Swift Package for the Anthropic Claude API.
+A Swift Package for the Anthropic Claude API, part of the
+[Tazendor](https://github.com/tazendor) AI ecosystem.
+
+Provides both a typed Anthropic-specific client (`AnthropicClient`) and a
+provider-agnostic adapter (`AnthropicAIProvider` via `AIClient` from
+[TazendorAI](https://github.com/tazendor/ai-swift)).
 
 ## Requirements
 
@@ -13,22 +18,40 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/mindfury/AnthropicKit.git", from: "0.1.0")
+    .package(url: "https://github.com/tazendor/anthropic-swift.git", from: "0.2.0")
 ]
 ```
 
-Then add `"AnthropicKit"` to your target's dependencies.
+Then add `"TazendorAnthropic"` to your target's dependencies.
 
-## Quick Start
+## Quick Start — Provider-Agnostic (AIClient)
 
 ```swift
-import AnthropicKit
+import TazendorAI
+import TazendorAnthropic
+
+let provider = AnthropicAIProvider(
+    configuration: AnthropicConfiguration(apiKey: "your-api-key")
+)
+
+let response = try await provider.sendMessage(
+    AIRequest(
+        model: "claude-sonnet-4-6",
+        maxTokens: 1024,
+        messages: [AIMessage(role: .user, text: "Hello, Claude!")]
+    )
+)
+```
+
+## Quick Start — Anthropic-Specific
+
+```swift
+import TazendorAnthropic
 
 let client = URLSessionAnthropicClient(
     configuration: AnthropicConfiguration(apiKey: "your-api-key")
 )
 
-// Send a message
 let response = try await client.sendMessage(MessageRequest(
     model: "claude-sonnet-4-6",
     maxTokens: 1024,
@@ -94,6 +117,19 @@ let response = try await client.sendMessage(MessageRequest(
 ))
 ```
 
+Or via the provider-agnostic interface:
+
+```swift
+let response = try await provider.sendMessage(
+    AIRequest(
+        model: "claude-opus-4-6",
+        maxTokens: 16000,
+        messages: [AIMessage(role: .user, text: "Solve this step by step...")],
+        options: [.anthropicThinkingBudget: .number(10000)]
+    )
+)
+```
+
 ## List Models
 
 ```swift
@@ -105,7 +141,7 @@ for model in models.data {
 
 ## Error Handling
 
-All methods throw `AnthropicError`, a typed enum:
+All methods throw `AnthropicError` (typed client) or `AIError` (provider):
 
 ```swift
 do {
